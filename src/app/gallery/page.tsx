@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -18,6 +18,10 @@ export default function GalleryPage() {
   const [activeFilter, setActiveFilter] = useState('all');
   const [hoveredItem, setHoveredItem] = useState<number | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState<{ [key: number]: number }>({});
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  
+  const touchRef = useRef<{ [key: number]: number | null }>({});
 
   // Enhanced gallery items with multiple images for each event
   const galleryItems: GalleryItem[] = [
@@ -106,8 +110,8 @@ export default function GalleryPage() {
     : galleryItems.filter(item => item.category === activeFilter);
 
   // Navigation functions for mini slideshow - FIXED TYPES
-  const nextImage = (itemId: number, itemImages: string[], e: React.MouseEvent) => {
-    e.stopPropagation();
+  const nextImage = (itemId: number, itemImages: string[], e?: React.MouseEvent) => {
+    e?.stopPropagation();
     const currentIndex = currentImageIndex[itemId] || 0;
     const nextIndex = (currentIndex + 1) % itemImages.length;
     setCurrentImageIndex(prev => ({
@@ -116,8 +120,8 @@ export default function GalleryPage() {
     }));
   };
 
-  const prevImage = (itemId: number, itemImages: string[], e: React.MouseEvent) => {
-    e.stopPropagation();
+  const prevImage = (itemId: number, itemImages: string[], e?: React.MouseEvent) => {
+    e?.stopPropagation();
     const currentIndex = currentImageIndex[itemId] || 0;
     const prevIndex = (currentIndex - 1 + itemImages.length) % itemImages.length;
     setCurrentImageIndex(prev => ({
@@ -131,13 +135,61 @@ export default function GalleryPage() {
     return itemImages[index];
   };
 
+  // Touch handlers for mobile swipe
+  const handleTouchStart = (itemId: number, e: React.TouchEvent) => {
+    setHoveredItem(itemId);
+    touchRef.current[itemId] = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (itemId: number, e: React.TouchEvent) => {
+    if (!touchRef.current[itemId]) return;
+    setTouchEnd(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (itemId: number, itemImages: string[]) => {
+    if (!touchRef.current[itemId] || !touchEnd) return;
+    
+    const distance = touchRef.current[itemId]! - touchEnd;
+    const isLeftSwipe = distance > 50; // Minimum swipe distance
+    const isRightSwipe = distance < -50;
+    
+    if (isLeftSwipe) {
+      nextImage(itemId, itemImages);
+    } else if (isRightSwipe) {
+      prevImage(itemId, itemImages);
+    }
+    
+    touchRef.current[itemId] = null;
+    setTouchEnd(null);
+  };
+
+  // Click handlers for mobile tap navigation
+  const handleImageClick = (itemId: number, itemImages: string[], e: React.MouseEvent) => {
+    // Only navigate on mobile (touch devices)
+    if ('ontouchstart' in window) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const width = rect.width;
+      
+      // If click on left third, go previous
+      if (clickX < width / 3) {
+        prevImage(itemId, itemImages);
+      } 
+      // If click on right third, go next
+      else if (clickX > (width * 2) / 3) {
+        nextImage(itemId, itemImages);
+      }
+      // Middle third does nothing (could be used for fullscreen modal later)
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl lg:text-6xl font-bold mb-6">Our Gallery</h1>
           <p className="text-xl text-purple-100 max-w-3xl mx-auto">
-            Visual journey through our most stunning events. Hover to see more photos!
+            Visual journey through our most stunning events. {typeof window !== 'undefined' && 'ontouchstart' in window ? 'Swipe or tap sides to navigate' : 'Hover to see more photos!'}
           </p>
         </div>
       </div>
@@ -159,6 +211,15 @@ export default function GalleryPage() {
           ))}
         </div>
 
+        {/* Mobile Instructions */}
+        {'ontouchstart' in window && (
+          <div className="text-center mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 mx-auto max-w-md">
+            <p className="text-blue-700 text-sm font-medium">
+              💡 <strong>Mobile Tip:</strong> Swipe left/right or tap sides to navigate photos
+            </p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredItems.map((item) => (
             <div 
@@ -174,7 +235,13 @@ export default function GalleryPage() {
               onMouseLeave={() => setHoveredItem(null)}
             >
               {/* Image Container with Mini Slideshow */}
-              <div className="relative overflow-hidden h-80">
+              <div 
+                className="relative overflow-hidden h-80 cursor-pointer"
+                onClick={(e) => handleImageClick(item.id, item.images, e)}
+                onTouchStart={(e) => handleTouchStart(item.id, e)}
+                onTouchMove={(e) => handleTouchMove(item.id, e)}
+                onTouchEnd={() => handleTouchEnd(item.id, item.images)}
+              >
                 <Image
                   src={getCurrentImage(item.id, item.images)}
                   alt={item.title}
@@ -183,43 +250,60 @@ export default function GalleryPage() {
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
                 
-                {/* Hover Overlay with Navigation Arrows */}
+                {/* Desktop Hover Overlay with Navigation Arrows */}
                 {hoveredItem === item.id && item.images.length > 1 && (
                   <>
                     {/* Dark overlay */}
-                    <div className="absolute inset-0 bg-black opacity-30 transition-opacity duration-300"></div>
+                    <div className="absolute inset-0 bg-black opacity-30 transition-opacity duration-300 hidden md:block"></div>
                     
-                    {/* Left Arrow */}
+                    {/* Left Arrow - Desktop only */}
                     <button
                       onClick={(e) => prevImage(item.id, item.images, e)}
-                      className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 transition-all duration-200 hover:scale-110"
+                      className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 transition-all duration-200 hover:scale-110 hidden md:block"
                     >
                       <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                       </svg>
                     </button>
 
-                    {/* Right Arrow */}
+                    {/* Right Arrow - Desktop only */}
                     <button
                       onClick={(e) => nextImage(item.id, item.images, e)}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 transition-all duration-200 hover:scale-110"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 transition-all duration-200 hover:scale-110 hidden md:block"
                     >
                       <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </button>
 
-                    {/* Image Counter */}
-                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
-                      {((currentImageIndex[item.id] || 0) + 1)} / {item.images.length}
-                    </div>
-
-                    {/* View More Hint 
-                    <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
+                    {/* View More Hint - Desktop only */}
+                    <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm hidden md:block">
                       Click arrows to view more
                     </div>
-                    */}
                   </>
+                )}
+
+                {/* Mobile Navigation Overlay - Always show on mobile when multiple images */}
+                {item.images.length > 1 && (
+                  <>
+                    {/* Left tap zone for mobile */}
+                    <div className="absolute left-0 top-0 bottom-0 w-1/3 cursor-pointer md:hidden z-10"></div>
+                    
+                    {/* Right tap zone for mobile */}
+                    <div className="absolute right-0 top-0 bottom-0 w-1/3 cursor-pointer md:hidden z-10"></div>
+                    
+                    {/* Mobile navigation hints */}
+                    <div className="absolute bottom-2 left-2 md:hidden bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
+                      ← Tap sides →
+                    </div>
+                  </>
+                )}
+
+                {/* Image Counter - Show on both desktop and mobile */}
+                {item.images.length > 1 && (
+                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
+                    {((currentImageIndex[item.id] || 0) + 1)} / {item.images.length}
+                  </div>
                 )}
 
                 {/* Single image indicator */}
