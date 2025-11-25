@@ -4,16 +4,33 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
+// Define types for better TypeScript support
+interface GalleryItem {
+  id: number;
+  title: string;
+  category: string;
+  description: string;
+  images: string[];
+  tags: string[];
+}
+
 export default function GalleryPage() {
   const [activeFilter, setActiveFilter] = useState('all');
+  const [hoveredItem, setHoveredItem] = useState<number | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState<{ [key: number]: number }>({});
 
-  const galleryItems = [
+  // Enhanced gallery items with multiple images for each event
+  const galleryItems: GalleryItem[] = [
     {
       id: 1,
       title: "Elegant Wedding Setup",
       category: "weddings",
       description: "Romantic floral arrangements and elegant table settings",
-      image: "/images/gallery/wedding-1.jpg",
+      images: [
+        "/images/gallery/wedding-1.jpg",
+        "/images/gallery/wedding-2.jpg",
+        "/images/gallery/corporate-1.jpg"
+      ],
       tags: ["Floral", "Lighting", "Table Settings"],
     },
     {
@@ -21,7 +38,11 @@ export default function GalleryPage() {
       title: "Corporate Gala Decor",
       category: "corporate",
       description: "Professional and sophisticated corporate event setup",
-      image: "/images/gallery/corporate-1.jpg",
+      images: [
+        "/images/gallery/corporate-1.jpg",
+        "/images/gallery/corporate-2.jpg",
+        "/images/gallery/wedding-1.jpg"
+      ],
       tags: ["Corporate", "Stage Design", "Branding"],
     },
     {
@@ -29,7 +50,10 @@ export default function GalleryPage() {
       title: "Luxury Furniture Setup",
       category: "furniture",
       description: "Premium furniture arrangement for high-end events",
-      image: "/images/gallery/furniture-1.jpg",
+      images: [
+        "/images/gallery/furniture-1.jpg",
+        "/images/gallery/corporate-2.jpg"
+      ],
       tags: ["Chiavari Chairs", "Lounge", "Tables"],
     },
     {
@@ -37,7 +61,10 @@ export default function GalleryPage() {
       title: "Birthday Celebration",
       category: "parties",
       description: "Vibrant and fun decor for birthday celebrations",
-      image: "/images/gallery/birthday-1.jpg",
+      images: [
+        "/images/gallery/birthday-1.jpg",
+        "/images/gallery/wedding-2.jpg"
+      ],
       tags: ["Themed", "Colorful", "Entertainment"],
     },
     {
@@ -45,7 +72,11 @@ export default function GalleryPage() {
       title: "Garden Wedding Magic",
       category: "weddings",
       description: "Charming outdoor wedding with natural elements",
-      image: "/images/gallery/wedding-2.jpg",
+      images: [
+        "/images/gallery/wedding-2.jpg",
+        "/images/gallery/wedding-1.jpg",
+        "/images/gallery/birthday-1.jpg"
+      ],
       tags: ["Garden", "Outdoor", "Fairy Lights"],
     },
     {
@@ -53,7 +84,11 @@ export default function GalleryPage() {
       title: "Product Launch Event",
       category: "corporate",
       description: "Modern setup for product launch events",
-      image: "/images/gallery/corporate-2.jpg",
+      images: [
+        "/images/gallery/corporate-2.jpg",
+        "/images/gallery/corporate-1.jpg",
+        "/images/gallery/furniture-1.jpg"
+      ],
       tags: ["Modern", "Tech", "Display"],
     },
   ];
@@ -70,13 +105,39 @@ export default function GalleryPage() {
     ? galleryItems 
     : galleryItems.filter(item => item.category === activeFilter);
 
+  // Navigation functions for mini slideshow - FIXED TYPES
+  const nextImage = (itemId: number, itemImages: string[], e: React.MouseEvent) => {
+    e.stopPropagation();
+    const currentIndex = currentImageIndex[itemId] || 0;
+    const nextIndex = (currentIndex + 1) % itemImages.length;
+    setCurrentImageIndex(prev => ({
+      ...prev,
+      [itemId]: nextIndex
+    }));
+  };
+
+  const prevImage = (itemId: number, itemImages: string[], e: React.MouseEvent) => {
+    e.stopPropagation();
+    const currentIndex = currentImageIndex[itemId] || 0;
+    const prevIndex = (currentIndex - 1 + itemImages.length) % itemImages.length;
+    setCurrentImageIndex(prev => ({
+      ...prev,
+      [itemId]: prevIndex
+    }));
+  };
+
+  const getCurrentImage = (itemId: number, itemImages: string[]): string => {
+    const index = currentImageIndex[itemId] || 0;
+    return itemImages[index];
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl lg:text-6xl font-bold mb-6">Our Gallery</h1>
           <p className="text-xl text-purple-100 max-w-3xl mx-auto">
-            Visual journey through our most stunning events.
+            Visual journey through our most stunning events. Hover to see more photos!
           </p>
         </div>
       </div>
@@ -103,30 +164,68 @@ export default function GalleryPage() {
             <div 
               key={item.id} 
               className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden"
+              onMouseEnter={() => {
+                setHoveredItem(item.id);
+                setCurrentImageIndex(prev => ({
+                  ...prev,
+                  [item.id]: 0 // Reset to first image when hovering
+                }));
+              }}
+              onMouseLeave={() => setHoveredItem(null)}
             >
-              {/* Image Container - FIXED: Removed black overlay that was covering images */}
+              {/* Image Container with Mini Slideshow */}
               <div className="relative overflow-hidden h-80">
                 <Image
-                  src={item.image}
+                  src={getCurrentImage(item.id, item.images)}
                   alt={item.title}
                   fill
                   className="object-cover group-hover:scale-110 transition-transform duration-500"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
                 
-                {/* Only show overlay on hover */}
-                <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-                
-                {/* Hover content - only visible on hover */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="text-white text-center bg-black bg-opacity-50 rounded-lg p-4">
-                    <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <p className="text-sm">View Details</p>
-                  </div>
-                </div>
-                
+                {/* Hover Overlay with Navigation Arrows */}
+                {hoveredItem === item.id && item.images.length > 1 && (
+                  <>
+                    {/* Dark overlay */}
+                    <div className="absolute inset-0 bg-black opacity-30 transition-opacity duration-300"></div>
+                    
+                    {/* Left Arrow */}
+                    <button
+                      onClick={(e) => prevImage(item.id, item.images, e)}
+                      className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 transition-all duration-200 hover:scale-110"
+                    >
+                      <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+
+                    {/* Right Arrow */}
+                    <button
+                      onClick={(e) => nextImage(item.id, item.images, e)}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 transition-all duration-200 hover:scale-110"
+                    >
+                      <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+
+                    {/* Image Counter */}
+                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
+                      {((currentImageIndex[item.id] || 0) + 1)} / {item.images.length}
+                    </div>
+
+                    {/* View More Hint */}
+                    <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
+                      Click arrows to view more
+                    </div>
+                  </>
+                )}
+
+                {/* Single image indicator */}
+                {hoveredItem === item.id && item.images.length === 1 && (
+                  <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+                )}
+
                 {/* Category badge - always visible */}
                 <div className="absolute top-4 right-4 bg-white bg-opacity-90 text-gray-700 px-3 py-1 rounded-full text-xs font-semibold">
                   {item.category}
@@ -152,6 +251,7 @@ export default function GalleryPage() {
           ))}
         </div>
 
+        {/* CTA Section */}
         <div className="text-center mt-16">
           <div className="bg-white rounded-2xl p-8 max-w-4xl mx-auto shadow-lg">
             <h3 className="text-2xl font-bold text-gray-900 mb-4">Inspired by Our Gallery?</h3>
