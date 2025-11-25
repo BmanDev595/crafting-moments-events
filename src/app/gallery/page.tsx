@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -18,10 +18,14 @@ export default function GalleryPage() {
   const [activeFilter, setActiveFilter] = useState('all');
   const [hoveredItem, setHoveredItem] = useState<number | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState<{ [key: number]: number }>({});
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   
   const touchRef = useRef<{ [key: number]: number | null }>({});
+
+  // Check if mobile on component mount (client-side only)
+  useEffect(() => {
+    setIsMobile('ontouchstart' in window);
+  }, []);
 
   // Enhanced gallery items with multiple images for each event
   const galleryItems: GalleryItem[] = [
@@ -109,7 +113,7 @@ export default function GalleryPage() {
     ? galleryItems 
     : galleryItems.filter(item => item.category === activeFilter);
 
-  // Navigation functions for mini slideshow - FIXED TYPES
+  // Navigation functions for mini slideshow
   const nextImage = (itemId: number, itemImages: string[], e?: React.MouseEvent) => {
     e?.stopPropagation();
     const currentIndex = currentImageIndex[itemId] || 0;
@@ -143,30 +147,28 @@ export default function GalleryPage() {
 
   const handleTouchMove = (itemId: number, e: React.TouchEvent) => {
     if (!touchRef.current[itemId]) return;
-    setTouchEnd(e.touches[0].clientX);
+    const touchEnd = e.touches[0].clientX;
+    const distance = touchRef.current[itemId]! - touchEnd;
+    
+    // Swipe detection
+    if (Math.abs(distance) > 50) {
+      if (distance > 0) {
+        nextImage(itemId, galleryItems.find(item => item.id === itemId)?.images || []);
+      } else {
+        prevImage(itemId, galleryItems.find(item => item.id === itemId)?.images || []);
+      }
+      touchRef.current[itemId] = null;
+    }
   };
 
-  const handleTouchEnd = (itemId: number, itemImages: string[]) => {
-    if (!touchRef.current[itemId] || !touchEnd) return;
-    
-    const distance = touchRef.current[itemId]! - touchEnd;
-    const isLeftSwipe = distance > 50; // Minimum swipe distance
-    const isRightSwipe = distance < -50;
-    
-    if (isLeftSwipe) {
-      nextImage(itemId, itemImages);
-    } else if (isRightSwipe) {
-      prevImage(itemId, itemImages);
-    }
-    
+  const handleTouchEnd = (itemId: number) => {
     touchRef.current[itemId] = null;
-    setTouchEnd(null);
   };
 
   // Click handlers for mobile tap navigation
   const handleImageClick = (itemId: number, itemImages: string[], e: React.MouseEvent) => {
     // Only navigate on mobile (touch devices)
-    if ('ontouchstart' in window) {
+    if (isMobile) {
       const rect = e.currentTarget.getBoundingClientRect();
       const clickX = e.clientX - rect.left;
       const width = rect.width;
@@ -179,7 +181,6 @@ export default function GalleryPage() {
       else if (clickX > (width * 2) / 3) {
         nextImage(itemId, itemImages);
       }
-      // Middle third does nothing (could be used for fullscreen modal later)
     }
   };
 
@@ -189,7 +190,7 @@ export default function GalleryPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl lg:text-6xl font-bold mb-6">Our Gallery</h1>
           <p className="text-xl text-purple-100 max-w-3xl mx-auto">
-            Visual journey through our most stunning events. {typeof window !== 'undefined' && 'ontouchstart' in window ? 'Swipe or tap sides to navigate' : 'Hover to see more photos!'}
+            Visual journey through our most stunning events. {isMobile ? 'Swipe or tap sides to navigate' : 'Hover to see more photos!'}
           </p>
         </div>
       </div>
@@ -211,8 +212,8 @@ export default function GalleryPage() {
           ))}
         </div>
 
-        {/* Mobile Instructions */}
-        {'ontouchstart' in window && (
+        {/* Mobile Instructions - Only show after component mounts */}
+        {isMobile && (
           <div className="text-center mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 mx-auto max-w-md">
             <p className="text-blue-700 text-sm font-medium">
               💡 <strong>Mobile Tip:</strong> Swipe left/right or tap sides to navigate photos
@@ -240,7 +241,7 @@ export default function GalleryPage() {
                 onClick={(e) => handleImageClick(item.id, item.images, e)}
                 onTouchStart={(e) => handleTouchStart(item.id, e)}
                 onTouchMove={(e) => handleTouchMove(item.id, e)}
-                onTouchEnd={() => handleTouchEnd(item.id, item.images)}
+                onTouchEnd={() => handleTouchEnd(item.id)}
               >
                 <Image
                   src={getCurrentImage(item.id, item.images)}
@@ -251,15 +252,15 @@ export default function GalleryPage() {
                 />
                 
                 {/* Desktop Hover Overlay with Navigation Arrows */}
-                {hoveredItem === item.id && item.images.length > 1 && (
+                {hoveredItem === item.id && item.images.length > 1 && !isMobile && (
                   <>
                     {/* Dark overlay */}
-                    <div className="absolute inset-0 bg-black opacity-30 transition-opacity duration-300 hidden md:block"></div>
+                    <div className="absolute inset-0 bg-black opacity-30 transition-opacity duration-300"></div>
                     
                     {/* Left Arrow - Desktop only */}
                     <button
                       onClick={(e) => prevImage(item.id, item.images, e)}
-                      className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 transition-all duration-200 hover:scale-110 hidden md:block"
+                      className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 transition-all duration-200 hover:scale-110"
                     >
                       <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -269,7 +270,7 @@ export default function GalleryPage() {
                     {/* Right Arrow - Desktop only */}
                     <button
                       onClick={(e) => nextImage(item.id, item.images, e)}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 transition-all duration-200 hover:scale-110 hidden md:block"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 transition-all duration-200 hover:scale-110"
                     >
                       <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -277,7 +278,7 @@ export default function GalleryPage() {
                     </button>
 
                     {/* View More Hint - Desktop only 
-                    <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm hidden md:block">
+                    <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
                       Click arrows to view more
                     </div>
                     */}
@@ -285,16 +286,16 @@ export default function GalleryPage() {
                 )}
 
                 {/* Mobile Navigation Overlay - Always show on mobile when multiple images */}
-                {item.images.length > 1 && (
+                {item.images.length > 1 && isMobile && (
                   <>
                     {/* Left tap zone for mobile */}
-                    <div className="absolute left-0 top-0 bottom-0 w-1/3 cursor-pointer md:hidden z-10"></div>
+                    <div className="absolute left-0 top-0 bottom-0 w-1/3 cursor-pointer z-10"></div>
                     
                     {/* Right tap zone for mobile */}
-                    <div className="absolute right-0 top-0 bottom-0 w-1/3 cursor-pointer md:hidden z-10"></div>
+                    <div className="absolute right-0 top-0 bottom-0 w-1/3 cursor-pointer z-10"></div>
                     
                     {/* Mobile navigation hints */}
-                    <div className="absolute bottom-2 left-2 md:hidden bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
+                    <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
                       ← Tap sides →
                     </div>
                   </>
@@ -308,7 +309,7 @@ export default function GalleryPage() {
                 )}
 
                 {/* Single image indicator */}
-                {hoveredItem === item.id && item.images.length === 1 && (
+                {hoveredItem === item.id && item.images.length === 1 && !isMobile && (
                   <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
                 )}
 
