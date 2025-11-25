@@ -96,7 +96,7 @@ export default function Portfolio() {
               Explore our complete portfolio featuring dozens of successful events.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/portfolio" className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 shadow-lg">View Full Portfolio</Link>
+              {/* <Link href="/portfolio" className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 shadow-lg">View Full Portfolio</Link> */}
               <Link href="/gallery" className="border-2 border-purple-600 text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-purple-600 hover:text-white transition-all duration-300">Browse Gallery</Link>
             </div>
           </div>
