@@ -38,17 +38,17 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <a href="/services" className="text-gray-600 hover:text-purple-600 transition duration-150">
-                  Services
+                  Home
                 </a>
               </li>
               <li>
                 <a href="/portfolio" className="text-gray-600 hover:text-purple-600 transition duration-150">
-                  Portfolio
+                  Services
                 </a>
               </li>
               <li>
                 <a href="/furniture" className="text-gray-600 hover:text-purple-600 transition duration-150">
-                  Furniture Hire
+                  Gallery
                 </a>
               </li>
               <li>
