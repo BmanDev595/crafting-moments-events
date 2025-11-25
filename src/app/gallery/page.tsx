@@ -352,12 +352,6 @@ export default function GalleryPage() {
               >
                 Start Your Project
               </Link>
-              <Link 
-                href="/portfolio" 
-                className="border-2 border-purple-600 text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-purple-600 hover:text-white transition-all duration-300"
-              >
-                View Portfolio
-              </Link>
             </div>
           </div>
         </div>
