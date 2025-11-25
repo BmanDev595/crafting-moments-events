@@ -276,10 +276,11 @@ export default function GalleryPage() {
                       </svg>
                     </button>
 
-                    {/* View More Hint - Desktop only */}
+                    {/* View More Hint - Desktop only 
                     <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm hidden md:block">
                       Click arrows to view more
                     </div>
+                    */}
                   </>
                 )}
 
