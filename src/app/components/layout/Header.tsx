@@ -22,20 +22,20 @@ export default function Header() {
         <div className="flex justify-between items-center h-20">
             
         <Link href="/" className="flex items-center space-x-3">
-        <div className="relative w-12 h-12">
-            <Image
-            src="/images/logo/logo.png"
-            alt="Maru Events Logo"
-            width={48}
-            height={48}
-            className="object-contain"
-            />
-        </div>
-        <div className="flex flex-col">
-            <span className="text-xl font-bold text-gray-800">Maru Events</span>
-            <span className="text-xs text-gray-500">Your Wish Is Our Command</span>
-        </div>
-</Link>
+          <div className="relative w-12 h-12">
+              <Image
+              src="/images/logo/logo.png"
+              alt="Maru Events Logo"
+              width={48}
+              height={48}
+              className="object-contain"
+              />
+          </div>
+          <div className="flex flex-col">
+              <span className="text-xl font-bold text-gray-800">Maru Events</span>
+              <span className="text-xs text-gray-500">Your Wish Is Our Command</span>
+          </div>
+        </Link>
 
           {/* Desktop Navigation - UPDATED: Furniture Hire → Gallery */}
           <nav className="hidden md:flex space-x-8">

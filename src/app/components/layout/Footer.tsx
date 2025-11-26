@@ -1,5 +1,8 @@
 // This is a React functional component for the footer
 // No 'use client' needed because it doesn't use state or effects
+import Link from 'next/link';
+import Image from 'next/image';
+
 export default function Footer() {
   return (
     // Footer container with top border and padding
@@ -12,15 +15,21 @@ export default function Footer() {
           {/* Company Info Section */}
           <div className="col-span-1 md:col-span-2">
             {/* Logo and company name */}
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm">ME</span>
+            <Link href="/" className="flex items-center space-x-3 mb-4">
+              <div className="relative w-12 h-12">
+                <Image
+                  src="/images/logo/logo.png"
+                  alt="Maru Events Logo"
+                  width={48}
+                  height={48}
+                  className="object-contain"
+                />
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-800">Maru Events</h3>
-                <p className="text-sm text-gray-600">Your Wish Is Our Command</p>
+              <div className="flex flex-col">
+                <span className="text-xl font-bold text-gray-800">Maru Events</span>
+                <span className="text-xs text-gray-500">Your Wish Is Our Command</span>
               </div>
-            </div>
+            </Link>
             
             {/* Company description */}
             <p className="text-gray-600 max-w-md">
@@ -47,7 +56,7 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="/furniture" className="text-gray-600 hover:text-purple-600 transition duration-150">
+                <a href="/galler" className="text-gray-600 hover:text-purple-600 transition duration-150">
                   Gallery
                 </a>
               </li>
