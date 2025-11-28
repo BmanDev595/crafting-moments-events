@@ -131,7 +131,7 @@ export default function Footer() {
               </a>
             </div>
           </div>
-        </div>
+        </div>]88\
       </div>
     </footer>
   );
